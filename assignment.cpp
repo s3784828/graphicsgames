@@ -33,20 +33,23 @@ typedef struct {Vector2f r0, v0, r, v; } Projectile;
 PolarVector2f pVec2f = {0.5, 60.0};
 PolarVector2f pVec2fb1 = {0.5, 60.0};
 Vector2f v0start = {pVec2f.magnitude * cosf(toRad(pVec2f.angle)), pVec2f.magnitude * sinf(toRad(pVec2f.angle))};
-// float _v0x = pVec2f.magnitude * cosf(toRad(pVec2f.angle));
-// float _v0y = pVec2f.magnitude * sinf(toRad(pVec2f.angle));
 
 Vector2f calculateV0(PolarVector2f pVector2f) 
 {
   return {pVector2f.magnitude * cosf(toRad(pVector2f.angle)), pVector2f.magnitude * sinf(toRad(pVector2f.angle))};
 }
 
-Vector2f calculateR0(float x, float y)
+Vector2f calculateV0() 
 {
-  return {x, y};
+  return {pVec2f.magnitude * cosf(toRad(pVec2f.angle)), pVec2f.magnitude * sinf(toRad(pVec2f.angle))};
 }
 
-Projectile projectile = {{0, 0}, calculateV0(pVec2f), {0.0, 0.0}, {0.0, 0.0}};
+Vector2f calculateR0()
+{
+  return {cosf(toRad(pVec2f.angle)) * 0.25f, sinf(toRad(pVec2f.angle)) * 0.25f + 0.25f};
+}
+
+Projectile projectile = {calculateR0(), calculateV0(), calculateR0(), {0.0, 0.0}};
 Projectile projectileb1 = {{0, 0}, calculateV0(pVec2fb1), {0.0, 0.0}, {0.0, 0.0}};
 
 //Other
@@ -88,43 +91,7 @@ float findAngle(float x)
   if (debugAngle <= 0) {
     debugAngle = 180 + debugAngle;
   }
-
-  printf("angle = %f\n", angle);
-
-
-
-  // if (angle >= 0) {
-  //   angle -= 90;
-  // }
-  // else {
-  //   angle += 90;
-  // }
-
   return angle - 90;
-}
-
-float findAngle1(float x)
-{
-  float y, xn, yn, len;
-  y = sinValue(x);
-  xn -= derivativeSin(x);
-  yn = 1;
-  len = sqrt(xn * xn + yn * yn);
-  xn /= len;
-  yn /= len;
-
-  float x1, y1;
-  x1 = x + xn;
-  y1 = y + yn;
-
-  float angle = toDeg(atanf((y1 - y) / (x1 - x)));
-  float debugAngle = angle;
-
-  if (debugAngle <= 0) {
-    debugAngle = 180 + debugAngle;
-  }
-
-  return angle;
 }
 
 void updateProjectileStateAnalytical(float t, Projectile projectile)
@@ -136,7 +103,6 @@ void updateProjectileStateAnalytical(float t, Projectile projectile)
 
   projectile.r.x = v0.x * t + r0.x;
   projectile.r.y = 1.0 / 2.0 * g * t * t + v0.y * t + r0.y;
-  //printf("x: %f, y: %f, t: %f\n", projectile.r.x, projectile.r.y, t);
   glutPostRedisplay();
 }
 
@@ -149,8 +115,20 @@ void updateProjTower(float t)
 
   projectile.r.x = v0.x * t + r0.x;
   projectile.r.y = 1.0 / 2.0 * g * t * t + v0.y * t + r0.y;
-  //printf("x: %f, y: %f, t: %f\n", projectile.r.x, projectile.r.y, t);
+  printf("x: %f, y: %f, t: %f\n", projectile.r.x, projectile.r.y, t);
   glutPostRedisplay();
+}
+
+void updateProjTower1(float dt)
+{
+  // Euler integration
+
+  // Position
+  projectile.r.x += projectile.v.x * dt;
+  projectile.r.y += projectile.v.y * dt;
+
+  // Velocity
+  projectile.v.y += g * dt;
 }
 
 void updateProjBoat(float t) 
@@ -208,7 +186,7 @@ void drawTowerFull()
 {
   glPushMatrix();
     //Tower
-    drawTower(0.25, 0.20);
+    drawTower(0.25, 0.25);
     //CannonSocket
     glTranslatef(0.0, 0.25, 0.0);
     glRotatef(270 + pVec2f.angle, 0.0, 0.0, 1.0);
@@ -329,10 +307,11 @@ void drawCannon()
   glEnd();
 }
 
-void drawBoat()
+void drawBoat(float scale)
 {
   glPushMatrix();
     //Hull
+    glScalef(scale, scale, scale);
     glTranslatef(0.0, 0.25, 0.0);
     drawHull();
     //Bridge
@@ -357,8 +336,7 @@ void drawBoatFull()
       glTranslatef(aValues.xPosition, sinValue(aValues.xPosition), 0.0);
       //glTranslatef(aValues.xPosition, 0.0, 0.0);
       glRotatef(findAngle(aValues.xPosition), 0.0, 0.0, 1.0);
-      glScalef(0.10, 0.10, 0.10);
-      drawBoat();
+      drawBoat(0.10);
     glPopMatrix();
 }
 
@@ -399,6 +377,19 @@ void drawct()
       drawSqaure(0.015);
     glPopMatrix();
   }
+  else {
+    glPushMatrix();
+      glTranslatef(projectile.r0.x, projectile.r0.y, 0.0);
+      drawSqaure(0.015);
+    glPopMatrix();
+  }
+}
+
+void sqauredraw() {
+  glPushMatrix();
+      glTranslatef(projectile.r.x, projectile.r.y, 0.0);
+      drawSqaure(0.015);
+    glPopMatrix();
 }
 
 void drawQaudratic(Projectile projectile, PolarVector2f pVec2f)
@@ -482,20 +473,20 @@ void update()
     tLast = t;
   }
   
-  // if (aValues.fire) {
-  //   printf("Fire = true\n");
-  // } 
-  // else {
-  //   printf("Fire = false\n");
-  // }
+  if (!aValues.fire) {
+    projectile.r0 = calculateR0();
+    projectile.r = projectile.r0;
+    projectile.v0 = calculateV0();
+    projectile.v = projectile.v0;
+  }
   
-  //printf("island = %f, Boat1 = %f\n", global.t - global.startTime, global.t - global.startTimeb1);
   dt = t - tLast;
   //printf("System time: %f, dt: %f\n", t, dt);
   if (aValues.fire) 
   {
     //updateProjectileStateAnalytical(global.t - global.startTime, projectile);
-    updateProjTower(global.t - global.startTime);
+    //updateProjTower(global.t - global.startTime);
+    updateProjTower1(t - tLast);
   }
   if (aValues.fireb1) 
   {
@@ -523,6 +514,7 @@ void display()
   if (!aValues.fire) 
   {
     projectile.r0 = {cosf(toRad(pVec2f.angle)) * 0.25f, sinf(toRad(pVec2f.angle)) * 0.25f + 0.25f};
+    projectile.r = projectile.r0;
   }
   if (!aValues.fireb1) 
   {
@@ -536,6 +528,7 @@ void display()
   //drawCannonBall(projectileb1);
   drawcb();
   drawct();
+  sqauredraw();
   //printf("r.x: %f, r.y: %f \n", projectile.r.y, projectile.r.x);
   if (projectile.r.y <= sinValue(projectile.r.x)) 
   {
@@ -566,29 +559,31 @@ void keyboard (unsigned char key, int x, int y)
       break;
     case 'w':
       if (!aValues.fire)
-        pVec2f.angle += 0.75;
-      printf("cannon rotation = %f\n", pVec2f.angle);
+      pVec2f.angle += 0.75;
+      //printf("cannon rotation = %f\n", pVec2f.angle);
       projectile.v0 = calculateV0(pVec2f);
+      projectile.r0 = calculateR0();
       glutPostRedisplay();
       break;
     case 's':
       if (!aValues.fire)
-        pVec2f.angle -= 0.75;
-      printf("cannon rotation = %f\n", pVec2f.angle);
+      pVec2f.angle -= 0.75;
+      //printf("cannon rotation = %f\n", pVec2f.angle);
       projectile.v0 = calculateV0(pVec2f);
+      projectile.r0 = calculateR0();
       glutPostRedisplay();
       break;
     case '1':
       if (!aValues.fireb1)
-        pVec2fb1.angle += 0.75;
-      printf("cannon rotation = %f\n", pVec2f.angle);
+      pVec2fb1.angle += 0.75;
+      //printf("cannon rotation = %f\n", pVec2f.angle);
       projectileb1.v0 = calculateV0(pVec2fb1);
       glutPostRedisplay();
       break;
     case 'q':
       if (!aValues.fireb1)
-        pVec2fb1.angle -= 0.75;
-      printf("cannon rotation = %f\n", pVec2f.angle);
+      pVec2fb1.angle -= 0.75;
+      //printf("cannon rotation = %f\n", pVec2f.angle);
       projectileb1.v0 = calculateV0(pVec2fb1);
       glutPostRedisplay();
       break;
@@ -605,11 +600,10 @@ void keyboard (unsigned char key, int x, int y)
       {
         printf("fire\n");
         global.startTime = glutGet(GLUT_ELAPSED_TIME) / 1000.0;
+        projectile.r = projectile.r0;
+        projectile.v = projectile.v0;
+        
         aValues.fire = true;
-        projectile.v.x = projectile.v0.x;
-        projectile.v.y = projectile.v0.y;
-        projectile.r.y = projectile.r0.y;
-        projectile.r.x = projectile.r0.x;
       }
       break;
     case 'g':
