@@ -28,12 +28,16 @@ vec2fPolar polar = {0.5, 60.0};
 float v0x = polar.mag * cosf(toRad(polar.angle));
 float v0y = polar.mag * sinf(toRad(polar.angle));
 
-typedef struct { vec2f r0, v0, r, v; } state;
+const float RADIUS = 0.05;
+const float TIMESTEP = 0.01;
+
+typedef struct { vec2f r0, v0, r, v; float radius; } state;
 state projectile = {
   { 0.0, 0.0 },
   { v0x, v0y },
   { 0.0, 0.0 },
-  { 0.0, 0.0 }
+  { 0.0, 0.0 },
+  RADIUS
 };
 
 typedef struct {float t, lastT, dt; } Global;
@@ -67,6 +71,8 @@ typedef struct {
 } global_t;
 
 global_t global = { true, false, false, 0.0, numerical, true, 0, 0.0, 0.2, 0.0 };
+float globalt = 0.0;
+float globaldt = 0.0;
 
 void drawQaudratic(float t)
 {
@@ -82,10 +88,6 @@ void drawQaudratic(float t)
   float maxHeight = (v0Mag * v0Mag * sinf(toRad(polar.angle)) * sinf(toRad(polar.angle))) / (2 * posg);
   float range = right - left;
   float stepSize = range / segments;
-  if (projectile.r.y >= 0 && global.go) 
-  {
-    printf("range = %f, stepsize = %f, right = %f, time = %f, max height = %f, initialvelocity y = %f, initialvelocity x = %f, v0Mag = %f, segments = %f\n", range, stepSize, right, t, maxHeight, projectile.v0.y, projectile.v0.x, v0Mag, segments);
-  }
   float x, y;
 
   //glPointSize(10.0);
@@ -162,27 +164,8 @@ void drawLine(int len)
   glEnd();
 }
 
-void updateProjectileStateNumerical(float dt)
-{
-  // Euler integration
 
-  // Position
-  projectile.r.x += projectile.v.x * dt;
-  projectile.r.y += projectile.v.y * dt;
 
-  // Velocity
-  projectile.v.y += g * dt;
-}
-
-void updateProjectileState(float t, float dt)
-{
-  if (global.debug)
-    //printf("global.integrateMode: %d\n", global.integrateMode);
-  if (global.integrateMode == analytical)
-    updateProjectileStateAnalytical(t);
-  else
-    updateProjectileStateNumerical(dt);
-}
 
 
 void displayProjectile(void)
@@ -193,6 +176,161 @@ void displayProjectile(void)
   glEnd();
 }
 
+typedef struct
+{
+  float amplitude;
+  float k;
+  float w;
+} SinGraphUtility;
+
+SinGraphUtility sinUtil = {0.15, 2 * M_PI / 1 , M_PI / 4};
+
+float sinValue(float x)
+{
+  return sinUtil.amplitude * sinf(sinUtil.k * x + sinUtil.w * globalt);
+}
+
+float sinValue1(float x)
+{
+  return sinUtil.amplitude * sinf(sinUtil.k * x + sinUtil.w * globalt) + 1;
+}
+
+void drawSin(float segments)
+{
+  float left = -1.0;
+  float right = 1.0;
+  float range = right - left;
+  float stepSize = range / segments;
+
+  glPointSize(10);
+  glBegin(GL_QUAD_STRIP);
+  glColor3f(0, 0, 1);
+  float x, y;
+  for (int i = 0; i <= segments; i++)
+  {
+    x = i * stepSize + left;
+    y = sinValue(x);
+    glVertex3f(x, y, 0.0);
+    glVertex3f(x, -1.0, 0.0);
+  }
+  glEnd();
+}
+
+float getDistance() 
+{
+  return sqrt((projectile.r0.y - sinValue(projectile.r0.x)) * (projectile.r0.y - sinValue(projectile.r0.x)) + (projectile.r.y - sinValue(projectile.r.x)) * (projectile.r.y - sinValue(projectile.r.x)));
+  //return sqrt((sinValue(projectile.r0.x) - projectile.r0.y) * (sinValue(projectile.r0.x) - projectile.r0.y) + (sinValue(projectile.r.x) - projectile.r.y) * (sinValue(projectile.r.x)) - projectile.r.y);
+}
+
+float getDistance(float x, float y)
+{
+  float y0 = y - TIMESTEP;
+  float x0 = x - TIMESTEP;
+  float sin0 = sinValue(x0);
+  float sin = sinValue(x);
+  // if (sin0 < 0) 
+  // {
+  //   sin0 = -sinValue(x0);
+  // }
+  // if (sin < 0) {
+  //   sin = -sinValue(x);
+  // }
+  
+
+  return sqrt((y0 - sin0) * (y0 - sin0) + (y - sin) * (y - sin));
+}
+
+void checkCollision() 
+{
+  float sum = sinValue(projectile.r.x);
+  static bool collided = false;
+  if (getDistance() <= sum || collided) 
+  {
+    //printf("Collided\n");
+
+    if (!collided)
+      collided = true;
+  }
+  else if (!collided)
+  {
+    //printf("distance %f, sum %f\n", getDistance(), sum);
+  }
+}
+
+bool collided(float x, float y)
+{
+  float sinvalue = sinValue(x);
+  if (sinvalue < 0) 
+  {
+    sinvalue = -sinValue(x);
+  }
+
+  float sum = sinvalue;
+  bool collided = false;
+  if (getDistance(x, y) <= sum && global.go) 
+  {
+    printf("Collided\n");
+
+    if (!collided)
+      collided = true;
+      return collided;
+  }
+  else if (!collided)
+  {
+    printf("distance %f, sum %f\n", getDistance(), sum);
+  }
+  return collided;
+}
+
+void updateProjectileStateNumerical(float dt)
+{
+  // Euler integration
+  projectile.r0 = projectile.r;
+  // Position
+  projectile.r.x += projectile.v.x * dt;
+  projectile.r.y += projectile.v.y * dt;
+
+  // Velocity
+  projectile.v.y += g * dt;
+}
+
+void drawPath(float dt)
+{
+  float dtt = dt + TIMESTEP;
+  float x = projectile.r.x;
+  float y = projectile.r.y;
+  float vy = projectile.v.y;
+  float vx = projectile.v.x;
+  glBegin(GL_LINES);
+  glColor3f(0.0, 1.0, 0.0);
+  glVertex3f(x, y, 0.0);
+  x += vx * dtt;
+  y += vy * dtt;
+  vy += g * dtt;
+  
+  while(!collided(x, y) && global.go) {
+    
+    dtt += TIMESTEP;
+    x += vx * dtt;
+    y += vy * dtt;
+    vy += g * dtt;
+    glVertex3f(x, y, 0);
+  }
+  glEnd();
+}
+
+void updateProjectileState(float t, float dt)
+{
+  if (global.debug)
+    //printf("global.integrateMode: %d\n", global.integrateMode);
+  if (global.integrateMode == analytical)
+    updateProjectileStateAnalytical(t);
+  else
+    updateProjectileStateNumerical(dt);
+    globaldt = dt;
+    //drawPath(dt);
+}
+
 // Idle callback for animation
 void update(void)
 {
@@ -200,20 +338,50 @@ void update(void)
   float t, dt;
 
   if (!global.go)
-    return;
-
+  {
+    globalt = glutGet(GLUT_ELAPSED_TIME) / (float)milli;
+  }
+  else 
+  {
+  globalt = glutGet(GLUT_ELAPSED_TIME) / (float)milli;
   t = glutGet(GLUT_ELAPSED_TIME) / (float)milli - global.startTime;
-
+  
   if (lastT < 0.0) {
     lastT = t;
     return;
   }
-
+  checkCollision();
   dt = t - lastT;
   if (global.debug)
     //printf("%f %f\n", t, dt);
+  
+
+  //printf("distance %f\n", getDistance());
+  
   updateProjectileState(t, dt);
   lastT = t;
+
+  if (collided(projectile.r.x, projectile.r.y))
+    global.go = false;
+  }
+  // t = glutGet(GLUT_ELAPSED_TIME) / (float)milli - global.startTime;
+  
+  // if (lastT < 0.0) {
+  //   lastT = t;
+  //   return;
+  // }
+
+  // dt = t - lastT;
+  // if (global.debug)
+  //   //printf("%f %f\n", t, dt);
+  
+
+  // printf("distance %f\n", getDistance());
+  // updateProjectileState(t, dt);
+  
+
+
+  // lastT = t;
 
   /* Frame rate */
   dt = t - global.lastFrameRateT;
@@ -223,12 +391,15 @@ void update(void)
     global.frames = 0;
   }
 
-  if (projectile.r.y < 0) {
+  if (collided(projectile.r.x, projectile.r.y)) {
     global.go = false;
+    projectile.r0 = {0, 0};
   }
 
   glutPostRedisplay();
 }
+
+
 
 void displayOSD()
 {
@@ -292,24 +463,23 @@ void display(void)
 
   //glColor3f (0.8, 0.8, 0.8);
 
-  // Display projectile
   drawAxes(1);
-  //displayProjectile();
   drawLine(0.5);
 
+  drawSin(30);
+  
+  glPushMatrix();
+    glTranslatef(projectile.r.x, projectile.r.y, 0);
+    glColor3f(1, 1, 1);
+    glutSolidSphere(projectile.radius,20,20);
+  glPopMatrix();
 
+  
+  drawPath(globaldt);
+  
+  //drawPath(globaldt);
 
-  if (projectile.r.y >= 0)
-  {
-    glPushMatrix();
-      glTranslatef(projectile.r.x, projectile.r.y, 0);
-      //glRotatef(polar.angle, 0, 0, 0);
-      glutWireSphere(0.05,8,3);
-    glPopMatrix();
-  }
-
-  drawQaudratic(0);
-  //drawQaudratic(global_
+  //drawQaudratic(0);
 
 
   // Display OSD
@@ -360,7 +530,7 @@ void keyboardCB(unsigned char key, int x, int y)
     polar.angle += 0.25;
     projectile.v0.y = polar.mag * sinf(toRad(polar.angle));
     projectile.v0.x = polar.mag * cosf(toRad(polar.angle));
-    printf("polar angle = %f polar magnitude = %f, initialVelocity.x = %f, initialVelocity.y = %f \n", polar.angle, polar.mag, projectile.v0.x, projectile.v0.y);
+    //printf("polar angle = %f polar magnitude = %f, initialVelocity.x = %f, initialVelocity.y = %f \n", polar.angle, polar.mag, projectile.v0.x, projectile.v0.y);
     //printf("angle: %f\n", polar.angle);
     glutPostRedisplay();
     break;
@@ -368,7 +538,7 @@ void keyboardCB(unsigned char key, int x, int y)
     polar.angle -= 0.25;
     projectile.v0.y = polar.mag * sinf(toRad(polar.angle));
     projectile.v0.x = polar.mag * cosf(toRad(polar.angle));
-    printf("polar angle = %f polar magnitude = %f, initialVelocity.x = %f, initialVelocity.y = %f \n", polar.angle, polar.mag, projectile.v0.x, projectile.v0.y);
+    //printf("polar angle = %f polar magnitude = %f, initialVelocity.x = %f, initialVelocity.y = %f \n", polar.angle, polar.mag, projectile.v0.x, projectile.v0.y);
     //printf("angle: %f\n", polar.angle);
     glutPostRedisplay();
     break;
@@ -376,7 +546,7 @@ void keyboardCB(unsigned char key, int x, int y)
     //projectile.r0.y += 0.10;
     polar.mag *= 1.1;
     //polar.mag += 0.10;
-    printf("polar angle = %f polar magnitude = %f, initialVelocity.x = %f, initialVelocity.y = %f \n", polar.angle, polar.mag, projectile.v0.x, projectile.v0.y);
+    //printf("polar angle = %f polar magnitude = %f, initialVelocity.x = %f, initialVelocity.y = %f \n", polar.angle, polar.mag, projectile.v0.x, projectile.v0.y);
     projectile.v0.y = polar.mag * sinf(toRad(polar.angle));
     projectile.v0.x = polar.mag * cosf(toRad(polar.angle));
 
@@ -386,7 +556,7 @@ void keyboardCB(unsigned char key, int x, int y)
   case 's':
     polar.mag *= 0.9;
     //polar.mag -= 0.10;
-    printf("polar angle = %f polar magnitude = %f, initialVelocity.x = %f, initialVelocity.y = %f \n", polar.angle, polar.mag, projectile.v0.x, projectile.v0.y);
+    //printf("polar angle = %f polar magnitude = %f, initialVelocity.x = %f, initialVelocity.y = %f \n", polar.angle, polar.mag, projectile.v0.x, projectile.v0.y);
     projectile.v0.y = polar.mag * sinf(toRad(polar.angle));
     projectile.v0.x = polar.mag * cosf(toRad(polar.angle));
     glutPostRedisplay();

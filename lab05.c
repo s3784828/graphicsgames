@@ -32,8 +32,9 @@ typedef struct {V2 r0, v0, r, v; } C;
 typedef struct {float angle, length; } P;
 typedef struct {bool fire; } F;
 F f = {false};
-P p = {0.0, 0.5};
-C c = {{vel * cosf(toRad(p.angle + bAngle)), vel * sinf(toRad(p.angle + bAngle))}, {p.length * cosf(toRad(p.angle + bAngle)), p.length * sinf(toRad(p.angle + bAngle))}, {0,0}, {0,0}};
+P p = {-90, 0.5};
+//C c = {{0.0, 0.0}, {vel * cosf(toRad(p.angle + bAngle)), vel * sinf(toRad(p.angle + bAngle))}, {0,0}, {0,0}};
+C c = {{0.0, 0.0}, {0, 0}, {0,0}, {0,0}};
 
 
 
@@ -49,6 +50,16 @@ void updateProjectileStateNumerical(float dt)
 
   // Velocity
   c.v.y += g * dt;
+}
+
+void updateState()
+{
+  //c.r0.x = p.length * cosf(toRad(p.angle + bAngle + 90)) + 0.25 * cosf(toRad(bAngle));
+  c.r0.x = p.length * cosf(toRad(p.angle + bAngle + 90)) + 0.5;
+  c.r0.y = p.length * sinf(toRad(p.angle + bAngle + 90));
+  //c.r0.y = p.length * sinf(toRad(p.angle + bAngle + 90)) + 0.25 * sinf(toRad(bAngle));
+  c.v0.x = vel * cosf(toRad(p.angle + bAngle + 90));
+  c.v0.y = vel * sinf(toRad(p.angle + bAngle + 90));
 }
 
 void drawAxes(float len)
@@ -83,8 +94,9 @@ void rect(float l, float h)
 void drawCannonFull() 
 {
   glPushMatrix();
-    //glTranslatef(0.25, 0.0, 0.0);
+    glTranslatef(1, 0.0, 0.0);
     glRotatef(bAngle, 0.0, 0.0, 1.0);
+    //glTranslatef(0.25, 0.25, 0.0);
     glRotatef(p.angle, 0.0, 0.0, 1.0);
     glTranslatef(0.0, 0.25, 0.0);
     rect(0.05, 0.5);
@@ -94,6 +106,7 @@ void drawCannonFull()
 void drawLine(float left, float right) 
 {
   glPushMatrix();
+    glTranslatef(1, 0.0, 0.0);
     glRotatef(bAngle, 0.0, 0.0, 1.0);
     glBegin(GL_LINES);
     glColor3f(1, 1, 1);
@@ -106,15 +119,12 @@ void drawLine(float left, float right)
 void update(void)
 {
   printf("r0x: %f, r0y: %f\n", c.r0.x, c.r0.y);
-  static float lastT = -1.0;
+  static float lastT = 0.0;
   float t, dt;
 
   if (!f.fire) 
   {
-    c.v.x = c.v0.x;
-    c.v.y = c.v0.y;
-    c.r.x = c.r0.x;
-    c.r.y = c.r0.y;
+    updateState();
     return;
   }
 
@@ -165,60 +175,32 @@ void keyboard (unsigned char key, int x, int y)
   switch (key) {
   case 'a':
     p.angle += 0.75f;
-    //rr.x = c.r0.x * cosf(toRad(bAngle)) - c.r0.y * sinf(toRad(bAngle));
-    //rr.y = c.r0.x * sinf(toRad(bAngle)) + c.r0.y * sinf(toRad(bAngle));
-    //c.r0 = rr;
-    // c.r0 = {p.length * cosf(toRad(p.angle)), p.length * sinf(toRad(p.angle))};
-    // c.v0 = {vel * cosf(toRad(p.angle)), vel * sinf(toRad(p.angle))};
-    c.r0.y = p.length * cosf(toRad(p.angle + bAngle));
-    c.r0.x = -p.length * sinf(toRad(p.angle + bAngle));
-    c.v0.y = vel * cosf(toRad(p.angle + bAngle));
-    c.v0.x = -vel * sinf(toRad(p.angle + bAngle));
+    updateState();
     glutPostRedisplay();
     break;
   case 'A':
     p.angle -= 0.75f;
-    //rr.x = c.r0.x * cosf(toRad(bAngle)) - c.r0.y * sinf(toRad(bAngle));
-    //rr.y = c.r0.x * sinf(toRad(bAngle)) + c.r0.y * sinf(toRad(bAngle));
-    //c.r0 = rr;
-    c.r0.y = p.length * cosf(toRad(p.angle + bAngle));
-    c.r0.x = -p.length * sinf(toRad(p.angle + bAngle));
-    c.v0.y = vel * cosf(toRad(p.angle + bAngle));
-    c.v0.x = -vel * sinf(toRad(p.angle + bAngle));
+    updateState();
     glutPostRedisplay();
     break;
   case 'b':
     bAngle += 0.75f;
-    //rr.x = c.r0.x * cosf(toRad(bAngle)) - c.r0.y * sinf(toRad(bAngle));
-    //rr.y = c.r0.x * sinf(toRad(bAngle)) + c.r0.y * sinf(toRad(bAngle));
-    //c.r0 = rr;
-    //c.v0 = {vel * cosf(toRad(p.angle)), vel * sinf(toRad(p.angle))};
-    c.r0.y = p.length * cosf(toRad(p.angle + bAngle));
-    c.r0.x = -p.length * sinf(toRad(p.angle + bAngle));
-    c.v0.y = vel * cosf(toRad(p.angle + bAngle));
-    c.v0.x = -vel * sinf(toRad(p.angle + bAngle));
+    updateState();
     glutPostRedisplay();
     break;
   case 'B':
     bAngle -= 0.75f;
-    // rr.x = c.r0.x * cosf(toRad(bAngle)) - c.r0.y * sinf(toRad(bAngle));
-    // rr.y = c.r0.x * sinf(toRad(bAngle)) + c.r0.y * sinf(toRad(bAngle));
-    // c.r0 = rr;
-    c.r0.y = p.length * cosf(toRad(p.angle + bAngle));
-    c.r0.x = -p.length * sinf(toRad(p.angle + bAngle));
-    c.v0.y = vel * cosf(toRad(p.angle + bAngle));
-    c.v0.x = -vel * sinf(toRad(p.angle + bAngle));
+    updateState();
     glutPostRedisplay();
     break;
   case 'f':
   printf("fire called");
     if (!f.fire) {
       startTime = glutGet(GLUT_ELAPSED_TIME) / (float) 1000.0;
+      c.r = c.r0;
+      c.v = c.v0;
       f.fire = true;
-      c.v.x = c.v0.x;
-      c.v.y = c.v0.y;
-      c.r.y = c.r0.y;
-      c.r.x = c.r0.x;
+      
     }
     break;
   case 27:

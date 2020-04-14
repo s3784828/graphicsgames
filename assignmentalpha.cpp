@@ -17,7 +17,10 @@
 */
 
 const float g = -0.25;
-const float boatScale = 0.5;
+const float boatScale = 0.10;
+const float pScale = 0.25;
+const float timeStep = 0.00001;
+const float movementSpeed = 0.005;
 float numericalInc = 0.5;
 float bAngle = 0.0;
 bool dab = false;
@@ -51,12 +54,14 @@ typedef struct
   Vector2 v0;
   Vector2 r;
   Vector2 v;
+  float radius;
 } Projectile;
 
 typedef struct
 {
   float t;
   float startTime;
+  float dt;
 } TimeUtility;
 
 typedef struct
@@ -65,15 +70,50 @@ typedef struct
   float xPos;
 } InputUtility;
 
+typedef struct
+{
+  Vector2 pos;
+  float radius;
+} Collider;
+
+typedef struct
+{
+  PolarCoordinate pc;
+  Projectile p;
+  Collider c;
+  InputUtility i;
+  float health;
+} ControlledObject;
+
 /*
 * CLASS OBJECTS
 */
 
+/*
+* ENVIROMENTAL OBJECTS
+*/
+
 SinGraphUtility sinUtil = {0.25, 2 * PI / 1 , PI / 4};
-TimeUtility timeUtil = {0.0, 0.0};
+TimeUtility timeUtil = {0.0, 0.0, 0.0};
+
+/*
+* BOAT #1
+*/
+
 PolarCoordinate pCoord = {0.35, 0.0};
-InputUtility input = {false, 0.0};
-Projectile p1 = {{0,0}, {0,0}, {0,0}, {0,0}};
+InputUtility input = {false, -0.5};
+Projectile p1 = {{0,0}, {0,0}, {0,0}, {0,0}, pScale / 2};
+Collider b1 = {{0.0, 0.0}};
+//BoatObject = {p1, b1};
+
+ControlledObject boat1 
+{
+  {0.35, 0.0},
+  {{0,0}, {0,0}, {0,0}, {0,0}, pScale / 2},
+  {{0.0, 0.0}},
+  {false, -0.5},
+  100.0
+};
 
 /*
 * HELPER METHODS
@@ -118,91 +158,40 @@ float findAngle(float x)
 
   float angle = toDeg(atan2((y1 - y),(x1 - x)));
 
-  return angle / 2;
-}
-
-float findAngle1(float x)
-{
-  float y, xt, yt, len;
-  xt = 1;
-  yt = derivativeSin(x);
-  len = sqrt(xt * xt + yt * yt);
-  xt /= len;
-  yt /= len;
-
-  float x1, y1;
-  x1 = x + xt;
-  y1 = y + yt;
-
-  float angle = toDeg(atan2((y1 - y),(x1 - x)));
-
   return angle;
 }
+
+Vector2 calculateR0Angle(float hyp, float xInc, float yInc, float s)
+{
+  hyp *= s;
+  xInc *= s;
+  yInc *= s;
+  xInc += input.xPos;
+  yInc += sinValue(input.xPos);
+
+  return {hyp * cosf(toRad(findAngle(input.xPos))) + input.xPos, hyp * cosf(toRad(findAngle(input.xPos))) + sinValue(input.xPos)};
+}
+
+Vector2 calculateV0Angle() 
+{
+  return {pCoord.mag * cosf(toRad(findAngle(input.xPos))), pCoord.mag * sinf(toRad(findAngle(input.xPos)))};
+}
+
 
 Vector2 calculateR0(float hyp, float xInc, float yInc, float s)
 {
   hyp *= s;
   xInc *= s;
   yInc *= s;
+  xInc += input.xPos;
+  yInc += sinValue(input.xPos);
 
-  float inc = hyp * 0.5;
-
-  Vector2 r0;
-
-  float r0x = (hyp) * cosf(toRad(pCoord.angle + bAngle)) + (xInc) * cosf(toRad(bAngle));
-  float r0y = (hyp) * sinf(toRad(pCoord.angle + bAngle)) + (yInc) * sinf(toRad(bAngle));
-
-  if (dab) 
-  {
-  if (bAngle <= 90 && bAngle >= 0) 
-  {
-    r0 = {r0x, r0y + inc};
-  }
-  else if (bAngle > 90 && bAngle <= 180)
-  {
-    r0 = {r0x - inc, r0y + inc};
-  }
-  else if (bAngle > 180 && bAngle <= 270) 
-  {
-    r0 = {r0x, r0y - inc};
-  }
-  else if (bAngle > 270 && bAngle <= 360)
-  {
-    r0 = {r0x + inc, r0y - inc};
-  }  
-  }
-  else 
-  {
-    r0 = {r0x, r0y};
-  } 
-  // if (bAngle <= 90 && bAngle >= 0) 
-  // {
-  //   r0 = {r0x, r0y + inc};
-  // }
-  // else if (bAngle > 90 && bAngle <= 180)
-  // {
-  //   r0 = {r0x - inc, r0y + inc};
-  // }
-  // else if (bAngle > 180 && bAngle <= 270) 
-  // {
-  //   r0 = {r0x, r0y - inc};
-  // }
-  // else if (bAngle > 270 && bAngle <= 360)
-  // {
-  //   r0 = {r0x + inc, r0y - inc};
-  // }
-  printf("bAngle = %f\n", bAngle);
-  //return r0;
-  return r0;
-  //return {(hyp) * cosf(toRad(pCoord.angle + bAngle)) + (xInc) * cosf(toRad(bAngle)), (hyp) * sinf(toRad(pCoord.angle + bAngle)) + (yInc) * sinf(toRad(bAngle))};
+  return {hyp * cosf(toRad(pCoord.angle)) + xInc, hyp * sinf(toRad(pCoord.angle)) + yInc};
 }
-
-
 
 Vector2 calculateV0() 
 {
-  //return {pCoord.mag * cosf(toRad(pCoord.angle + findAngle1(input.xPos))), pCoord.mag * sinf(toRad(pCoord.angle + findAngle1(input.xPos)))};
-  return {pCoord.mag * cosf(toRad(pCoord.angle + bAngle)), pCoord.mag * sinf(toRad(pCoord.angle + bAngle))};
+  return {pCoord.mag * cosf(toRad(pCoord.angle)), pCoord.mag * sinf(toRad(pCoord.angle))};
 }
 
 
@@ -214,24 +203,23 @@ void updateProjectileStateNumerical(float dt)
 
   // Velocity
   p1.v.y += g * dt;
-  printf("p1.v.x: %f p1.v.y %f p1.r.x: %f p1.r.y %f dt: %f\n", p1.v.x, p1.v.y, p1.r.x, p1.r.y, dt);
 }
 
 void updateProjectileStateInitial() 
 {
-  p1.r0 = calculateR0(0.5, 0.5, 0.25, boatScale);
-  //printf("p1.r0.x = %f, p1.ro.y = %f\n", p1.r0.x, p1.r0.y);
-  //p1.r0.x += 0.75;
-  //p1.r0.y += 0.25; 
+  p1.r0 = calculateR0(0.5, 0.5, 0.5, boatScale);
   p1.v0 = calculateV0();
 }
 
 void updateProjectileState()
 {
   p1.r = p1.r0;
-  // p1.r.x += 0.75 * 0.10;
-  // p1.r.y += 0.25 * 0.10;
   p1.v = p1.v0;
+}
+
+bool collided(Vector2 position)
+{
+  return position.y <= sinValue(position.x);
 }
 
 /*
@@ -307,7 +295,7 @@ void drawCannon()
   glEnd();
 }
 
-void drawSqaure(float len)
+void drawSquare(float len)
 {
   glBegin(GL_LINE_LOOP);
   glColor3f(1, 0, 0);
@@ -324,38 +312,33 @@ void drawCB()
   {
     glPushMatrix();
       glTranslatef(p1.r.x, p1.r.y, 0.0);
-      drawSqaure(0.015);
+      drawSquare(0.015);
     glPopMatrix();
   }
   else 
   {
     glPushMatrix();
-      //glTranslatef(0.75 * 0.10, 0.25 * 0.10, 0.0);
       glTranslatef(p1.r0.x, p1.r0.y, 0.0);
-      //drawSqaure(0.015);
-      drawAxes(0.25);
+      drawSquare(0.015);
     glPopMatrix();
   }
 }
 
-void drawBoat(float scale)
+void drawBoat(ControlledObject boat, float scale)
 {
   glPushMatrix();
     //Hull
-    //glTranslatef(input.xPos, sinValue(input.xPos), 0.0);
-    glRotatef(bAngle, 0.0, 0.0, 1.0);
+    glTranslatef(boat.i.xPos, sinValue(boat.i.xPos), 0.0);
     glScalef(scale, scale, scale);
-    glRotatef(pCoord.angle, 0.0, 0.0, 1.0);
-    drawCannon();
-    //glRotatef(findAngle1(input.xPos), 0.0, 0.0, 1.0);
-    //glTranslatef(0.25, 0.0, 0.0);
+    //glRotatef(findAngle(input.xPos), 0.0, 0.0, 1.0);
+    glTranslatef(0.0, 0.25, 0.0);
     drawHull();
     //Bridge
     glTranslatef(0.0, 0.5, 0.0);
     drawBridge();
     //CannonSocket
     glTranslatef(0.5, -0.25, 0.0);
-    //glRotatef(pCoord.angle, 0.0, 0.0, 1.0);
+    glRotatef(boat.pc.angle, 0.0, 0.0, 1.0);
     //Cannon
     glTranslatef(0.25, 0.0, 0.0);
     drawCannon();
@@ -363,6 +346,35 @@ void drawBoat(float scale)
     glTranslatef(0.25, 0.0, 0.0);
     //drawCB();
   glPopMatrix();
+}
+
+void drawProjectilePath()
+{
+  if (!input.fire)
+  {
+    return;
+  }
+
+  float dt; 
+  Vector2 r, v;
+  dt = timeUtil.dt;
+  r = p1.r;
+  v = p1.v;
+  glBegin(GL_LINE_STRIP);
+  glColor3f(1.0, 1.0, 1.0);
+  glVertex3f(r.x, r.y, 0.0);
+  while(!collided(r))
+  {
+    dt += timeStep;
+    r.x += v.x * dt;
+    r.y += v.y * dt;
+    v.y += g * dt;
+    if (r.y >= sinValue(r.x))
+    {
+      glVertex3f(r.x, r.y, 0.0);
+    }
+  }
+  glEnd();
 }
 
 /*
@@ -387,9 +399,10 @@ void update()
   t = glutGet(GLUT_ELAPSED_TIME) / (float) 1000.0 - timeUtil.startTime;
 
   dt = t - tLast;
+  timeUtil.dt = dt;
   updateProjectileStateNumerical(dt);
 
-  if (p1.r.y < sinValue(p1.r.x))
+  if (collided(p1.r))
   {
     input.fire = false;
   } 
@@ -405,35 +418,11 @@ void display()
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glLoadIdentity();
-  //drawSin(35);
+  drawSin(35);
+  drawBoat(boatScale);
   drawCB();
-  //drawBoat(boatScale);
-
-  glPushMatrix();
-    glScalef(boatScale, boatScale, boatScale);
-    //glRotatef(bAngle, 0.0, 0.0, 1.0);
-    drawAxes(1.0);
-    //glTranslatef(0.5, 0.25, 0.0);
-    //drawSqaure(0.10);
-    glTranslatef(0.5, 0.0, 0.0);
-    glTranslatef(0.0, 0.25, 0.0);
-    glRotatef(pCoord.angle, 0.0, 0.0, 1.0);
-    glTranslatef(0.25, 0.0, 0.0);
-    drawCannon();
-  glPopMatrix();
-
-  glPushMatrix();
-    glScalef(boatScale, boatScale, boatScale);
-    glRotatef(bAngle, 0.0, 0.0, 1.0);
-    drawAxes(1.0);
-    //glTranslatef(0.5, 0.25, 0.0);
-    //drawSqaure(0.10);
-    glTranslatef(0.5, 0.0, 0.0);
-    glTranslatef(0.0, 0.25, 0.0);
-    glRotatef(pCoord.angle, 0.0, 0.0, 1.0);
-    glTranslatef(0.25, 0.0, 0.0);
-    drawCannon();
-  glPopMatrix();
+  drawProjectilePath();
+  
   
   if ((err = glGetError()) != GL_NO_ERROR)
     fprintf(stderr, "Error: %s\n", gluErrorString(err));
@@ -453,14 +442,17 @@ void keyboard (unsigned char key, int x, int y)
       pCoord.angle += 0.75;
       glutPostRedisplay();
       break;
-    case 'q':
-      bAngle += 0.75;
-      glutPostRedisplay();
-      break;
+
     case 'a':
-      bAngle -= 0.75;
+      input.xPos -= movementSpeed;
       glutPostRedisplay();
       break;
+
+    case 'd':
+      input.xPos += movementSpeed;
+      glutPostRedisplay();
+      break;
+    
     case 'f':
       if (!input.fire) 
       {
@@ -472,14 +464,9 @@ void keyboard (unsigned char key, int x, int y)
       {
         input.fire = false;
       }
-    case 'g':
-      dab = true;
-      glutPostRedisplay();
       break;
-    case 'G':
-      dab = false;
-      glutPostRedisplay();
-      break;
+    
+    
     default:
       break;
   }
