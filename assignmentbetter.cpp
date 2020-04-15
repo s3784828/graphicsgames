@@ -149,52 +149,35 @@ Vector2 calculateR0(float hyp, float xInc, float yInc, float s)
 
   Vector2 r0;
 
-  float r0x = (hyp) * cosf(toRad(pCoord.angle + bAngle)) + (xInc) * cosf(toRad(bAngle));
-  float r0y = (hyp) * sinf(toRad(pCoord.angle + bAngle)) + (yInc) * sinf(toRad(bAngle));
+  float ang = toDeg(atan2(yInc, xInc));
+  float xHyp = cosf(toRad(ang)) * xInc;
+  float yHyp = sinf(toRad(ang)) * yInc;
 
-  if (dab) 
-  {
-  if (bAngle <= 90 && bAngle >= 0) 
-  {
-    r0 = {r0x, r0y + inc};
-  }
-  else if (bAngle > 90 && bAngle <= 180)
-  {
-    r0 = {r0x - inc, r0y + inc};
-  }
-  else if (bAngle > 180 && bAngle <= 270) 
-  {
-    r0 = {r0x, r0y - inc};
-  }
-  else if (bAngle > 270 && bAngle <= 360)
-  {
-    r0 = {r0x + inc, r0y - inc};
-  }  
-  }
-  else 
-  {
-    r0 = {r0x, r0y};
-  } 
-  // if (bAngle <= 90 && bAngle >= 0) 
-  // {
-  //   r0 = {r0x, r0y + inc};
-  // }
-  // else if (bAngle > 90 && bAngle <= 180)
-  // {
-  //   r0 = {r0x - inc, r0y + inc};
-  // }
-  // else if (bAngle > 180 && bAngle <= 270) 
-  // {
-  //   r0 = {r0x, r0y - inc};
-  // }
-  // else if (bAngle > 270 && bAngle <= 360)
-  // {
-  //   r0 = {r0x + inc, r0y - inc};
-  // }
-  printf("bAngle = %f\n", bAngle);
-  //return r0;
-  return r0;
-  //return {(hyp) * cosf(toRad(pCoord.angle + bAngle)) + (xInc) * cosf(toRad(bAngle)), (hyp) * sinf(toRad(pCoord.angle + bAngle)) + (yInc) * sinf(toRad(bAngle))};
+  float _x = xInc * cosf(toRad(bAngle));
+  float _y = yInc * sinf(toRad(bAngle));
+  //printf("x = %f, y = %f, angle = %f\n", xHyp, yHyp, ang);
+
+  //float _x = xHyp * cosf(toRad(bAngle + ang));
+  //float _y = yHyp * sinf(toRad(bAngle + ang));
+
+  // float _x = xHyp;
+  // float _y = yHyp;
+  float aAngle = pCoord.angle;
+
+
+  // float r0x = ((hyp) * cosf(toRad(aAngle + bAngle)) * cosf(toRad(bAngle))) + xInc ;
+  // float r0y = ((hyp) * sinf(toRad(aAngle + bAngle))  * sinf(toRad(bAngle))) + yInc;
+
+  // float r0x = cosf(toRad(bAngle)) + xInc ;
+  // float r0y = sinf(toRad(bAngle)) + yInc;
+
+  //hopefully a distinction
+  float r0x = (hyp) * cosf(toRad(aAngle + bAngle)) + (xInc * cosf(toRad(bAngle)));
+  float r0y = (hyp) * sinf(toRad(aAngle + bAngle)) + (0.25 * sinf(toRad(bAngle)));
+
+  printf("yInc = %f, xInc = %f\n", yInc, xInc);
+
+  return {r0x, r0y};
 }
 
 
@@ -409,18 +392,18 @@ void display()
   drawCB();
   //drawBoat(boatScale);
 
-  glPushMatrix();
-    glScalef(boatScale, boatScale, boatScale);
-    //glRotatef(bAngle, 0.0, 0.0, 1.0);
-    drawAxes(1.0);
-    //glTranslatef(0.5, 0.25, 0.0);
-    //drawSqaure(0.10);
-    glTranslatef(0.5, 0.0, 0.0);
-    glTranslatef(0.0, 0.25, 0.0);
-    glRotatef(pCoord.angle, 0.0, 0.0, 1.0);
-    glTranslatef(0.25, 0.0, 0.0);
-    drawCannon();
-  glPopMatrix();
+  // glPushMatrix();
+  //   glScalef(boatScale, boatScale, boatScale);
+  //   //glRotatef(bAngle, 0.0, 0.0, 1.0);
+  //   drawAxes(1.0);
+  //   //glTranslatef(0.5, 0.25, 0.0);
+  //   //drawSqaure(0.10);
+  //   glTranslatef(0.5, 0.0, 0.0);
+  //   glTranslatef(0.0, 0.25, 0.0);
+  //   glRotatef(pCoord.angle, 0.0, 0.0, 1.0);
+  //   glTranslatef(0.25, 0.0, 0.0);
+  //   drawCannon();
+  // glPopMatrix();
 
   glPushMatrix();
     glScalef(boatScale, boatScale, boatScale);

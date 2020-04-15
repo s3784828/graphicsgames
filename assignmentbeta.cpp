@@ -242,10 +242,27 @@ Vector2 calculateR0(Object* obj, float hyp, float xInc, float yInc, float s)
   xInc *= s;
   yInc *= s;
 
+  float radangle = toRad(findAngle(obj->i.xPos));
+  float angle = findAngle(obj->i.xPos);
+
   if (!obj->isIsland)
   {
+
+    //float _x = cosf(toRad(findAngle(obj->i.xPos))) * xInc;
+    //float _y = sinf(toRad(findAngle(obj->i.xPos))) * yInc; 
+
+    float coolAngle = atanf(xInc * yInc);
+
     xInc += obj->i.xPos;
     yInc += sinValue(obj->i.xPos);
+
+
+    float _x = cosf(radangle + coolAngle) * xInc;
+    float _y = sinf(radangle + coolAngle) * yInc; 
+
+    float x = hyp * cosf(toRad(obj->pc.angle + obj->pc.angle)) + _x;
+    float y = hyp * sinf(toRad(obj->pc.angle + obj->pc.angle)) + _y;
+    return {x, y};
   }
 
   float x = hyp * cosf(toRad(obj->pc.angle)) + xInc;
@@ -510,7 +527,7 @@ void drawBoat(Object boat, bool facingRight)
     //Hull
     glTranslatef(boat.i.xPos, sinValue(boat.i.xPos), 0.0);
     glScalef(boatScale, boatScale, boatScale);
-    //glRotatef(findAngle(input.xPos), 0.0, 0.0, 1.0);
+    glRotatef(findAngle(boat.i.xPos), 0.0, 0.0, 1.0);
     glTranslatef(0.0, 0.25, 0.0);
     drawHull();
     //Bridge
@@ -524,7 +541,7 @@ void drawBoat(Object boat, bool facingRight)
     drawCannon();
     //CannonBallLocation
     glTranslatef(0.25, 0.0, 0.0);
-    //drawCB();
+    glutWireSphere(20 * 0.005, 5, 5);
   glPopMatrix();
 }
 
@@ -715,40 +732,40 @@ void display()
   {
     updateInitialPosition(&boat1);
     drawBoat(boat1, true);
-    drawCB(boat1);
+    //drawCB(boat1);
     drawProjectilePath(boat1);
     drawHealthBar(boat1, 0.9, 1.0, 0.0, 0.0);
   }
 
-  if (boat1.r0.x == 0)
-  {
-    updateInitialPosition(&boat1);
-  }
+  // if (boat1.r0.x == 0)
+  // {
+  //   updateInitialPosition(&boat1);
+  // }
 
-  //Boat #2
-  if (boat2.health != 0)
-  {
-    updateInitialPosition(&boat2);
-    drawBoat(boat2, false);
-    drawCB(boat2);
-    drawProjectilePath(boat2);
-    drawHealthBar(boat2, 0.8, 0.0, 1.0, 0.0);
-  }
+  // //Boat #2
+  // if (boat2.health != 0)
+  // {
+  //   updateInitialPosition(&boat2);
+  //   drawBoat(boat2, false);
+  //   drawCB(boat2);
+  //   drawProjectilePath(boat2);
+  //   drawHealthBar(boat2, 0.8, 0.0, 1.0, 0.0);
+  // }
 
-  if (boat2.r0.y == 0)
-  {
-    updateInitialPosition(&boat2);
-  }
+  // if (boat2.r0.y == 0)
+  // {
+  //   updateInitialPosition(&boat2);
+  // }
 
   //Island
-  if (island.health != 0)
-  {
-    drawIsland(island);
-    drawCB(island);
-    drawProjectilePath(island);
-    drawHealthBar(island, 0.85, 0.0, 0.0, 1.0);
-    setRadius(&island);
-  }
+  // if (island.health != 0)
+  // {
+  //   drawIsland(island);
+  //   drawCB(island);
+  //   drawProjectilePath(island);
+  //   drawHealthBar(island, 0.85, 0.0, 0.0, 1.0);
+  //   setRadius(&island);
+  // }
 
   drawSin(35);
   

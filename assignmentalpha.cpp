@@ -186,7 +186,7 @@ Vector2 calculateR0(float hyp, float xInc, float yInc, float s)
   xInc += input.xPos;
   yInc += sinValue(input.xPos);
 
-  return {hyp * cosf(toRad(pCoord.angle)) + xInc, hyp * sinf(toRad(pCoord.angle)) + yInc};
+  return {hyp * cosf(toRad(pCoord.angle + bAngle)) + xInc * cosf(toRad(bAngle)), hyp * sinf(toRad(pCoord.angle + bAngle)) + yInc * sinf(toRad(bAngle))};
 }
 
 Vector2 calculateV0() 
@@ -324,7 +324,7 @@ void drawCB()
   }
 }
 
-void drawBoat(ControlledObject boat, float scale)
+void drawBoat(float scale)
 {
   glPushMatrix();
     //Hull
@@ -419,7 +419,7 @@ void display()
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glLoadIdentity();
   drawSin(35);
-  drawBoat(boatScale);
+  //drawBoat(boatScale);
   drawCB();
   drawProjectilePath();
   
