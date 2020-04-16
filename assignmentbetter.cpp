@@ -173,9 +173,9 @@ Vector2 calculateR0(float hyp, float xInc, float yInc, float s)
 
   //hopefully a distinction
   float r0x = (hyp) * cosf(toRad(aAngle + bAngle)) + (xInc * cosf(toRad(bAngle)));
-  float r0y = (hyp) * sinf(toRad(aAngle + bAngle)) + (0.25 * sinf(toRad(bAngle)));
+  float r0y = (hyp) * sinf(toRad(aAngle + bAngle)) + (yInc * sinf(toRad(bAngle)));
 
-  printf("yInc = %f, xInc = %f\n", yInc, xInc);
+  printf("yInc = %f, xInc = %f, transy = %f\n", yInc, xInc, (yInc * sinf(toRad(bAngle))));
 
   return {r0x, r0y};
 }
@@ -202,7 +202,7 @@ void updateProjectileStateNumerical(float dt)
 
 void updateProjectileStateInitial() 
 {
-  p1.r0 = calculateR0(0.5, 0.5, 0.25, boatScale);
+  p1.r0 = calculateR0(0.5, 0.25, 0.25, 1.0);
   //printf("p1.r0.x = %f, p1.ro.y = %f\n", p1.r0.x, p1.r0.y);
   //p1.r0.x += 0.75;
   //p1.r0.y += 0.25; 
@@ -406,12 +406,12 @@ void display()
   // glPopMatrix();
 
   glPushMatrix();
-    glScalef(boatScale, boatScale, boatScale);
+    //glScalef(boatScale, boatScale, boatScale);
     glRotatef(bAngle, 0.0, 0.0, 1.0);
     drawAxes(1.0);
     //glTranslatef(0.5, 0.25, 0.0);
     //drawSqaure(0.10);
-    glTranslatef(0.5, 0.0, 0.0);
+    glTranslatef(0.25, 0.0, 0.0);
     glTranslatef(0.0, 0.25, 0.0);
     glRotatef(pCoord.angle, 0.0, 0.0, 1.0);
     glTranslatef(0.25, 0.0, 0.0);

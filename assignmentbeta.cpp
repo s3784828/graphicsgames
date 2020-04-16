@@ -253,15 +253,15 @@ Vector2 calculateR0(Object* obj, float hyp, float xInc, float yInc, float s)
 
     float coolAngle = atanf(xInc * yInc);
 
-    xInc += obj->i.xPos;
-    yInc += sinValue(obj->i.xPos);
+   // xInc += obj->i.xPos;
+   // yInc += sinValue(obj->i.xPos);
 
 
-    float _x = cosf(radangle + coolAngle) * xInc;
-    float _y = sinf(radangle + coolAngle) * yInc; 
+    float _x = cosf(toRad(findAngle(obj->i.xPos))) * xInc;
+    float _y = sinf(toRad(findAngle(obj->i.xPos))) * yInc; 
 
-    float x = hyp * cosf(toRad(obj->pc.angle + obj->pc.angle)) + _x;
-    float y = hyp * sinf(toRad(obj->pc.angle + obj->pc.angle)) + _y;
+    float x = hyp * cosf(toRad(findAngle(obj->i.xPos) + obj->pc.angle)) + _x + obj->i.xPos;
+    float y = hyp * sinf(toRad(findAngle(obj->i.xPos) + obj->pc.angle)) + _y + sinValue(obj->i.xPos);
     return {x, y};
   }
 
@@ -273,7 +273,12 @@ Vector2 calculateR0(Object* obj, float hyp, float xInc, float yInc, float s)
 
 Vector2 calculateV0(Object* obj) 
 {
-  return {obj->pc.mag * cosf(toRad(obj->pc.angle)), obj->pc.mag * sinf(toRad(obj->pc.angle))};
+  float angle = obj->pc.angle;
+  if (!obj->isIsland)
+  {
+   angle += findAngle(obj->pc.angle);
+  }
+  return {obj->pc.mag * cosf(toRad(angle)), obj->pc.mag * sinf(toRad(angle))};
 }
 
 void updateProjectileStateInitial(Object* obj) 
@@ -541,7 +546,7 @@ void drawBoat(Object boat, bool facingRight)
     drawCannon();
     //CannonBallLocation
     glTranslatef(0.25, 0.0, 0.0);
-    glutWireSphere(20 * 0.005, 5, 5);
+    //glutWireSphere(20 * 0.005, 5, 5);
   glPopMatrix();
 }
 
@@ -732,7 +737,7 @@ void display()
   {
     updateInitialPosition(&boat1);
     drawBoat(boat1, true);
-    //drawCB(boat1);
+    drawCB(boat1);
     drawProjectilePath(boat1);
     drawHealthBar(boat1, 0.9, 1.0, 0.0, 0.0);
   }
