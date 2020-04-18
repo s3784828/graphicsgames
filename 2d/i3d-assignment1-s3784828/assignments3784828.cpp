@@ -751,6 +751,7 @@ void drawNet(Object obj)
 
 void updateObject(Object* obj, Object* target, Object* target1)
 {
+  printf("fire06\n");
   if (allowAnimation)
   {
     obj->tProj.t = glutGet(GLUT_ELAPSED_TIME) / (float) 1000.0 - obj->tProj.startTime;
@@ -831,6 +832,7 @@ void update()
 
   updateInitialPosition(&boat1);
   updateInitialPosition(&boat2);
+
 
   if (boat1.i.fire) 
   {
@@ -1024,8 +1026,8 @@ void input(unsigned char key)
       {
         boat1.tProj.startTime = globalTime;
         updateProjectileState(&boat1, false);
-        boat1.i.fire = true;
         glutPostRedisplay();
+        boat1.i.fire = true;
       }
       break;
     
@@ -1035,7 +1037,6 @@ void input(unsigned char key)
         boat1.tNet.startTime = globalTime;
         updateProjectileState(&boat1, true);
         boat1.i.fireNet = true;
-        glutPostRedisplay();
       }
       break;
     
@@ -1079,7 +1080,6 @@ void input(unsigned char key)
         boat2.tProj.startTime = globalTime;
         updateProjectileState(&boat2, false);
         boat2.i.fire = true;
-        glutPostRedisplay();
       }
       break;
 
@@ -1089,7 +1089,6 @@ void input(unsigned char key)
         boat2.tNet.startTime = globalTime;
         updateProjectileState(&boat2, true);
         boat2.i.fireNet = true;
-        glutPostRedisplay();
       }
       break;
 
