@@ -39,7 +39,7 @@ typedef struct
 bool rotateY = true;
 MouseRotations rot = {0.0, 0.0, 1.0};
 Camera cam = {0.0, 0.0, 0.0, 0.0};
-float n = 8;
+float n = 9;
 bool t = false;
 
 // Utility function for drawing axes
@@ -100,7 +100,24 @@ void drawNormalVector(Vec3 v, float s)
 void drawGrid(float n)
 {
   float xStep, x;
+  // xStep = 2.0 / n;
+  // glPointSize(5);
+  // if(t)
+  //   glBegin(GL_TRIANGLE_STRIP);
+  // else
+  //   glBegin(GL_POINTS);
+  // for (int i = 0; i <= n; i++) 
+  // {
+  //   /* What is this calculation doing? */
+  //   x = -1.0 + i * xStep;
+  //   //z = 
+  //   glVertex3f(x, 0.0, 0.0);
+  //   glVertex3f(x, 0.0, xStep);
 
+  //   printf("i : %d, x : %f\n", i, x);  
+          
+  // }
+  // glEnd();
 
   float zStep, z;
 
@@ -111,9 +128,9 @@ void drawGrid(float n)
     z = -1.0 + j * zStep;
     glPointSize(5);
     if (t)
-      glBegin(GL_TRIANGLE_STRIP);
-    else
       glBegin(GL_POINTS);
+    else
+      glBegin(GL_TRIANGLES);
     glColor3f(1.0, 1.0, 1.0);
     z = -1.0 + j * zStep;
     
@@ -123,12 +140,14 @@ void drawGrid(float n)
     x = -1.0 + i * xStep;
     
     glVertex3f(x, 0.0, z);
+    glVertex3f(x, 0.0, z + zStep);
+    glVertex3f(x + xStep, 0.0, z + zStep);
+    
+    glVertex3f(x, 0.0, z);
+    glVertex3f(x + xStep, 0.0, z);
+    glVertex3f(x + xStep, 0.0, z + zStep);
     }
-    for (int i = n; i >= 0; i--)
-    {
-     x = -1.0 + i * xStep; 
-     glVertex3f(x, 0.0, z + zStep);
-    }
+    
     
   }
   glEnd();
@@ -140,31 +159,36 @@ void drawSin(float a, float n)
   float zStep, z;
   float y, y1;
 
-  float k = 2 * M_PI / a;
+  float k = (2 * M_PI) / a;
 
   xStep = 2.0 / n;                
   zStep = 2.0 / n; // xStep and zStep are the same, but could be different
   for (int j = 0; j < n; j++) 
   {
-    //z = -1.0 + j * zStep;
+    z = -1.0 + j * zStep;
     glPointSize(5);
     if (t)
-      glBegin(GL_QUAD_STRIP);
-    else
       glBegin(GL_POINTS);
+    else
+      glBegin(GL_TRIANGLES);
     
     glColor3f(1.0, 1.0, 1.0);
-    z = -1.0 + j * zStep;
+    
     
     for (int i = 0; i <= n; i++) 
     {
     /* What are these calculations doing? */
     x = -1.0 + i * xStep;
-    y = a * sinf(k * x);
+    y = a * sinf(k * z);
+    y1 = a * sinf(k * (z + zStep));
     
     glVertex3f(x, y, z);
+    glVertex3f(x, y1, z + zStep);
+    glVertex3f(x + xStep, y1, z + zStep);
     
-    printf("x: %f, y: %f, z: %f\n", x, y, z);
+    glVertex3f(x, y, z);
+    glVertex3f(x + xStep, y, z);
+    glVertex3f(x + xStep, y1, z + zStep);
     }
   
   }
@@ -206,8 +230,8 @@ void display()
     glRotatef(cam.x, 0.0, 1.0, 0.0);
     glRotatef(cam.y, 1.0, 0.0, 0.0);
     drawAxes(0.75);
-    drawSin(0.5, n);
     //drawGrid(n);
+    drawSin(0.25, n);
     //drawNormals();
   glPopMatrix();
 
