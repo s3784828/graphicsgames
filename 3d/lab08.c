@@ -39,7 +39,7 @@ typedef struct
 bool rotateY = true;
 MouseRotations rot = {0.0, 0.0, 1.0};
 Camera cam = {0.0, 0.0, 0.0, 0.0};
-float n = 9;
+float n = 8;
 bool t = false;
 
 // Utility function for drawing axes
@@ -74,6 +74,54 @@ void drawNormal(Vec3 v0, Vec3 v1, Vec3 v2)
   glEnd();
 }
 
+void drawTangentSin(float x, float y, float a, float k, float s)
+{
+  float xt, yt;
+  xt = 1;
+  yt = a * k * cosf(k * x);
+  float len = sqrt(pow(xt, 2) + pow(yt, 2));
+  xt /= len;
+  yt /= len;
+  //float len_1 = sqrt(pow(xt, 2) + pow(yt, 2));
+  //printf("length = %f\n", len_1);
+  xt *= s;
+  yt *= s;
+  float x1, y1;
+  x1 = x + xt;
+  y1 = y + yt;
+
+  glBegin(GL_LINES);
+  glColor3f(1, 0, 0);
+  glVertex2f(x, y);
+  glVertex2f(x1, y1);
+  glEnd();
+}
+
+void drawNormalSin(float x, float y, float a, float k, float s)
+{
+  float xn, yn;
+  xn = -(a * k * cosf(k * x));
+  yn = 1;
+  float len = sqrt((xn * xn) + (yn * yn));
+  xn /= len;
+  yn /= len;
+  xn *= s;
+  yn *= s;
+  float x1, y1;
+  x1 = x + xn;
+  y1 = y + yn;
+  glBegin(GL_LINES);
+  glColor3f(0, 1, 0);
+  glVertex2f(x, y);
+  glVertex2f(x1, y1);
+  glEnd();
+}
+
+void drawTrangentVector(Vec3 v, float a, float k, float s)
+{
+  
+}
+
 void drawNormalVector(Vec3 v, float s)
 {
   float xn, yn, zn;
@@ -97,28 +145,39 @@ void drawNormalVector(Vec3 v, float s)
   glEnd();
 }
 
+void drawNormalVectorSin(Vec3 v, float a, float k, float s)
+{
+  float xn, yn, zn;
+  //xn = -(a * k * cosf(k * v.x));
+  yn = 1;
+  //zn = 1;
+  //float len = sqrt((xn * xn) + (yn * yn) + (zn * zn));
+  //xn /= len;
+  //yn /= len;
+  //zn /= len;
+  //xn *= s;
+  yn *= s;
+  //zn *= s;
+  float x1, y1, z1;
+  x1 = v.x + xn;
+  y1 = v.y + yn;
+  z1 = v.z + zn;
+
+  // if (v.y < 0)
+  // {
+  //   v
+  // }
+
+  glBegin(GL_LINES);
+  glColor3f(0, 1, 0);
+  glVertex3f(v.x, v.y, v.z);
+  glVertex3f(v.x, y1, v.z);
+  glEnd();
+}
+
 void drawGrid(float n)
 {
   float xStep, x;
-  // xStep = 2.0 / n;
-  // glPointSize(5);
-  // if(t)
-  //   glBegin(GL_TRIANGLE_STRIP);
-  // else
-  //   glBegin(GL_POINTS);
-  // for (int i = 0; i <= n; i++) 
-  // {
-  //   /* What is this calculation doing? */
-  //   x = -1.0 + i * xStep;
-  //   //z = 
-  //   glVertex3f(x, 0.0, 0.0);
-  //   glVertex3f(x, 0.0, xStep);
-
-  //   printf("i : %d, x : %f\n", i, x);  
-          
-  // }
-  // glEnd();
-
   float zStep, z;
 
   xStep = 2.0 / n;                
@@ -147,19 +206,17 @@ void drawGrid(float n)
     glVertex3f(x + xStep, 0.0, z);
     glVertex3f(x + xStep, 0.0, z + zStep);
     }
-    
-    
   }
   glEnd();
 }
 
-void drawSin(float a, float n)
+void drawSin(float a, float waveLength, float n)
 {
   float xStep, x;
   float zStep, z;
   float y, y1;
 
-  float k = (2 * M_PI) / a;
+  float k = (2 * M_PI) / waveLength;
 
   xStep = 2.0 / n;                
   zStep = 2.0 / n; // xStep and zStep are the same, but could be different
@@ -179,20 +236,37 @@ void drawSin(float a, float n)
     {
     /* What are these calculations doing? */
     x = -1.0 + i * xStep;
-    y = a * sinf(k * z);
-    y1 = a * sinf(k * (z + zStep));
+    y = a * sinf(k * x);
+    
+    y1 = a * sinf(k * (x + xStep));
     
     glVertex3f(x, y, z);
-    glVertex3f(x, y1, z + zStep);
+    glVertex3f(x, y, z + zStep);
     glVertex3f(x + xStep, y1, z + zStep);
     
     glVertex3f(x, y, z);
-    glVertex3f(x + xStep, y, z);
+    glVertex3f(x + xStep, y1, z);
     glVertex3f(x + xStep, y1, z + zStep);
     }
-  
   }
   glEnd();
+
+  for (int j = 0; j <= n; j++) 
+  {
+    z = -1.0 + j * zStep;
+    
+    for (int i = 0; i <= n; i++) 
+    {
+    /* What are these calculations doing? */
+    x = -1.0 + i * xStep;
+    y = a * sinf(k * x);
+    
+    
+    
+    Vec3 v = {x, y, z};
+    drawNormalVectorSin(v, a, k, 0.05);
+    }
+  }
 }
 
 
@@ -231,7 +305,7 @@ void display()
     glRotatef(cam.y, 1.0, 0.0, 0.0);
     drawAxes(0.75);
     //drawGrid(n);
-    drawSin(0.25, n);
+    drawSin(0.25, 1, n);
     //drawNormals();
   glPopMatrix();
 
